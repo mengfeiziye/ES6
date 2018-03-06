@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>对象的扩展</title>
+</head>
+<body>
+<script>
+
+    var foo = 'bar';
+    var baz = {foo};
+    console.log(baz); // {foo: 'bar'}
+    function f(x, y) {
+        return {x, y};
+    }
+    console.log(f(1, 2)); // Object {x: 1, y: 2}
+    // 用于函数的返回值将非常方便
+    function getPoint() {
+        var x = 1;
+        var y = 10;
+        return {x, y};
+    }
+    console.log(getPoint()); // {x: 1, y: 10}
+
+    // Object.is()
+    /*
+     ES5比较两个值是否相等，只有两个运算符：相等运算符（==）和严格相等运算符（===）。
+     它们都有缺点，前者会自动转换数据类型，后者的NaN不等于自身，以及+0等于-0。
+     JavaScript缺乏一种运算，在所有环境中，只要两个值是一样的，它们就应该相等
+     ES6提出“Same-value equality”（同值相等）算法，用来解决这个问题。
+     Object.is就是部署这个算法的新方法。
+     它用来比较两个值是否严格相等，与严格比较运算符（===）的行为基本一致
+     */
+    console.log(Object.is('foo', 'foo')); // true
+    console.log(Object.is({}, {})); // false
+    // 不同之处只有两个：一个是 +0 不等于 -0，二是 NaN 等于自身
+    console.log(+0 === -0); // true
+    console.log(NaN === NaN); // false
+    console.log(Object.is(+0, -0)); // false
+    console.log(Object.is(NaN, NaN)); // true
+
+    // Object.assign方法用于对象的合并，将源对象（source）的所有可枚举属性，复制到目标对象（target）
+    // Object.assign方法的第一个参数是目标对象，后面的参数都是源对象
+    var target = {a: 1};
+    var source1 = {b: 2, c: 3};
+    var source2 = {d: 4, e: 5};
+    Object.assign(target, source1, source2);
+    console.log(target);
+    // 注意，如果目标对象与源对象有同名属性，或多个源对象有同名属性，则后面的属性会覆盖前面的属性
+    var tar = {a: 1, b: 1};
+    var sour1 = {b: 2, c: 2};
+    var sour2 = {c: 3, d: 4};
+    Object.assign(tar, sour1, sour2);
+    console.log(tar);
+    // Object.assign() 常见用途
+    // 1、为对象添加属性(下面方法通过Object.assign方法，将x属性和y属性添加到Point类的对象实例)
+    class Point {
+        constructor(x, y) {
+            Object.assign(this, {x, y});
+        }
+    }
+    // 2、为对象添加方法
+    var SomeClass = {};
+    //    Object.assign(SomeClass.prototype, {
+    //        someMethod(arg1, arg2) {
+    //            // do something
+    //        },
+    //        anotherMethod() {
+    //            // do something
+    //        }
+    //    });
+    // 等同于下面写法
+    //    SomeClass.prototype.someMethod = function (arg1, arg2) {
+    //        // do something
+    //    };
+    //    SomeClass.prototype.anotherMethod = function () {
+    //        // do something
+    //    };
+    // 3、克隆对象
+    //    var obj1 = {
+    //        'a': 1,
+    //        'b': 2
+    //    };
+    function Super() {
+        this.c = 3;
+        this.d = 4;
+    }
+    function Sub() {
+        this.a = 1;
+        this.b = 2;
+        Super.call(this);
+    }
+    Sub.prototype = Super.prototype;
+    var obj1 = new Sub();
+    console.log(obj1);
+
+    function orignClone(origin) { // 对原始对象的克隆
+        return Object.assign({}, origin)
+    }
+    function inheritClone(origin) { // 不仅克隆原始对象 也克隆它继承的值
+        let originProto = Object.getPrototypeOf(origin);
+        return Object.assign(Object.create(originProto), origin);
+    }
+    var obj2 = orignClone(obj1);
+    var obj3 = inheritClone(obj1);
+    console.log(obj2);
+    console.log(obj3);
+
+    // 4、合并多个对象
+    // 将多个对象合并到某个对象
+    const merge1 = (target, ...sources) => Object.assign(target, ...sources);
+    // 合并后返回一个新对象(对一个空对象进行合并)
+    const merge2 = (...sources) => Object.assign({}, ...sources);
+
+    // 5、为属性指定默认值
+    const DEFAULTS = {
+        logLevel: 0,
+        outputFormat: 'html'
+    };
+    function processContent(options) {
+        options = Object.assign({}, DEFAULTS, options);
+        console.log(options);
+    }
+    var opt = {
+        'name': '叶明',
+        'sex': '男'
+    };
+    processContent(opt);
+    /*
+     上面代码中，DEFAULTS对象是默认值，options对象是用户提供的参数。
+     Object.assign方法将DEFAULTS和options合并成一个新对象，如果两者有同名属性，
+     则option的属性值会覆盖DEFAULTS的属性值。
+     由于存在浅拷贝的问题，DEFAULTS对象和options对象的所有属性的值，最好都是简单类型，不要指向另一个对象。
+     否则，DEFAULTS对象的该属性很可能不起作用。
+     */
+    //    const DEFAULTS = {
+    //        url: {
+    //            host: 'example.com',
+    //            port: 7070
+    //        },
+    //    };
+    //    processContent({ url: {port: 8000} })
+    /*
+     上面代码的原意是将url.port改成8000，url.host不变。
+     实际结果却是options.url覆盖掉DEFAULTS.url，所以url.host就不存在了
+     */
+
+    // 属性的可枚举性
+    /*
+     对象的每个属性都有一个描述对象（Descriptor），用来控制该属性的行为。
+     Object.getOwnPropertyDescriptor方法可以获取该属性的描述对象
+     */
+    let doo = {foo: 123};
+    console.log(Object.getOwnPropertyDescriptor(doo, 'foo'));
+
+    // 属性的遍历(ES6 一共有5种方法可以遍历对象的属性)
+    /*
+     1、for...in
+     循环遍历对象自身的和继承的可枚举属性(不含 Symbol 属性)
+     */
+    /*
+     2、Obhect.keys(obj)
+     返回一个数组，包括对象自身的（不含继承的）所有可枚举属性（不含 Symbol 属性）
+     */
+    /*
+     3、Object.getOwnPropertyNames(obj)
+     返回一个数组，包含对象自身的所有属性（不含 Symbol 属性，但是包括不可枚举属性）
+     */
+    /*
+     4、Object.getOwnPropertySymbols(obj)
+     返回一个数组，包含对象自身的所有 Symbol 属性
+     */
+    /*
+     5、Reflect.ownKeys(obj)
+     返回一个数组，包含对象自身的所有属性，不管属性名是 Symbol 或字符串，也不管是否可枚举
+     */
+    /*
+     以上的5种方法遍历对象的属性，都遵守同样的属性遍历的次序规则。
+     首先遍历所有属性名为数值的属性，按照数字排序。
+     其次遍历所有属性名为字符串的属性，按照生成时间排序。
+     最后遍历所有属性名为 Symbol 值的属性，按照生成时间排序。
+     */
+
+    // Object.keys() Object.values() Object.entries()
+    /*
+    ES5 引入了Object.keys方法，返回一个数组。
+    prototype成员是参数对象自身的（不含继承的）所有可遍历（enumerable）属性的键名。
+    */
+    var aoo = {foo: 'bar', baz: 42};
+    console.log(Object.keys(aoo)); // ['foo', 'baz']
+    // ES2017 引入了跟Object.keys配套的Object.values和Object.entries，作为遍历一个对象的补充手段，供for...of循环使用。
+    let {keys, values, entries} = Object;
+    let _obj = {aa: 10, bb: 20, cc: 30};
+    for (let key of keys(_obj)) {
+        console.log(key); // aa bb cc
+    }
+    for (let value of values(_obj)) {
+        console.log(value); // 10 20 30
+    }
+    for (let [key, value] of entries(_obj)) {
+        console.log([key, value]); // ['aa', 10],['bb', 20],['cc', 30]
+    }
+
+
+
+</script>
+
+
+</body>
+</html>
